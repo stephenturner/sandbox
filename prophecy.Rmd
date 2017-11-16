@@ -69,7 +69,7 @@ prophet_plot_components(m, forecast)
 
 ## Forecast Peyton Manning Wikipedia Page Views
 
-Let's look at a time series of daily page views for the Wikipedia page for [Peyton Manning](https://en.wikipedia.org/wiki/Peyton_Manning) scraped using the [Wikipediatrend package](https://cran.r-project.org/web/packages/wikipediatrend/vignettes/using-wikipediatrend.html). This example illustrates forecasting that accounts for multiple seasonality, changing growth rates, and the ability to model special days (such as Manning's playoff and superbowl appearances). The data is available here.
+Let's look at a time series of daily page views for the Wikipedia page for [Peyton Manning](https://en.wikipedia.org/wiki/Peyton_Manning) scraped using the [Wikipediatrend package](https://cran.r-project.org/web/packages/wikipediatrend/vignettes/using-wikipediatrend.html). This example illustrates forecasting that accounts for multiple seasonality, changing growth rates, and the ability to model special days (such as Manning's playoff and superbowl appearances). The data is available [here](https://raw.githubusercontent.com/stephenturner/sandbox/master/data/peyton_manning_prophet.csv).
 
 ### Process data and forecast
 
