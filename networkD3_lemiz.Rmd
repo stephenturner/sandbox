@@ -1,0 +1,57 @@
+---
+title: "Playing around with networkD3"
+author: "Stephen Turner"
+date: "3/24/2017"
+output: 
+  html_document: 
+    toc: no
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+## Simple stuff
+
+```{r}
+library(networkD3)
+```
+
+Create some fake data.
+
+```{r}
+networkData <- data.frame(
+  source = c("A", "A", "A", "A", "B", "B", "C", "C", "D"), 
+  target = c("B", "C", "D", "J", "E", "F", "G", "H", "I")
+)
+networkData
+```
+
+Plot it. Try hovering, zooming, clicking/dragging nodes, etc.
+
+```{r}
+simpleNetwork(networkData, zoom=TRUE, fontSize = 10)
+```
+
+## But wait Jean Valjean, There's More
+
+Let's use some linkages and metadata about characters from _Les Miserables_.
+
+```{r}
+data(MisNodes)
+head(MisNodes, 15)
+
+data(MisLinks)
+head(MisLinks, 10)
+```
+
+How's about a [force-directed graph drawing](https://en.wikipedia.org/wiki/Force-directed_graph_drawing)? Hover over some of the points, use the mouse wheel to zoom in/out, click and drag around, etc. I'll need to learn a bit more about the data structures going into this...
+
+```{r}
+forceNetwork(Links = MisLinks, Nodes = MisNodes,
+            Source = "source", Target = "target",
+            Value = "value", NodeID = "name", Group = "group", 
+            opacity = 0.8, fontSize=10, zoom=TRUE)
+```
+

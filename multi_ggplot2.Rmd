@@ -1,0 +1,125 @@
+---
+title: "DESeq2 post analysis plots of expression values with a multipage PDF catalog"
+author: "Stephen Turner"
+date: "June 6, 2016"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE)
+```
+
+## The point
+
+I get asked all the time, "hey, could you make a boxplot of the expression values of _SomeGene_ for me?" The `plotCounts()` function in DESeq will do this, but only one gene at a time. This shows you how to do this for any arbitrary number of genes in your data (or all of them!). You can plot a small number in a single plot with facets, or you could plot a large number in a text-searchable multi-page PDF.
+
+## Setup
+
+Load the packages you'll use.
+
+```{r}
+library(tidyverse)
+library(DESeq2)
+library(airway)
+theme_set(theme_bw(base_size=14) + theme(strip.background = element_blank()))
+```
+
+Load the data from the airway package, and add a made up "group" variable. We'll use this downstream when we map aesthetics onto a boxplot. Create a `DESeqDataSet` and run the DESeq pipeline on it.
+
+```{r}
+# Load the data
+data(airway)
+
+# Make up a fake "group" variable
+colData(airway)$fake <- factor(rep(c("groupA", "groupB"), each=4))
+
+# Make a dataset and run the pipeline
+dds <- DESeqDataSet(airway, design=~cell+dex)
+dds <- DESeq(dds)
+```
+
+Inspect the `colData`.
+
+```{r}
+colData(dds)
+```
+
+## Get results
+
+Get the results for the dex treated vs untreated samples and arrange by p-value.
+
+```{r}
+res <- results(dds, tidy=TRUE, contrast=c("dex", "trt", "untrt")) %>%
+  arrange(padj, pvalue) %>%
+  tbl_df()
+res
+```
+
+Now, define some genes of interest. These must be the names of the genes as in the count data. That is, your genes of interest must be `%in% names(dds)`. These are the genes you'll plot. You could do as many as you like. Since you've arranged by p-value, let's take the top few results (9 in this case, so we make a square faceted plot).
+
+```{r}
+# Define the genes of interest.
+goi <- res$row[1:9]
+stopifnot(all(goi %in% names(dds)))
+goi
+```
+
+## Join & tidy
+
+Create a tidy/transposed count matrix. Here's a line-by-line explanation: 
+
+1. Here, you'll take the `counts()` of the dds object, normalizing it, without outlier replacement. You'll add a half count to it, because the next thing you'll do is `log2()` it, and you don't want any `-Inf`s. So now you have a log-transformed normalized count matrix. Now, transpose that matrix so the sample names are the `row.names`. 
+2. You'll now merge that thing with the `colData(dds)`, where the sample names are also the `row.names`. You'll now have a really wide data.frame with a single row for each sample, followed by all the colData, followed by a column for each of the genes of interest.
+3. Gather that up again so you now have one row per sample per gene, with all the sample info, and that gene's expression.
+
+```{r}
+tcounts <- t(log2((counts(dds[goi, ], normalized=TRUE, replaced=FALSE)+.5))) %>%
+  merge(colData(dds), ., by="row.names") %>%
+  gather(gene, expression, (ncol(.)-length(goi)+1):ncol(.))
+```
+
+Take a look. 
+
+```{r}
+tcounts %>% 
+  select(Row.names, dex, fake, gene, expression) %>% 
+  head %>% 
+  knitr::kable()
+```
+
+## Single faceted plot
+
+Now, create a single faceted plot. You don't have to add a fill aesthetic - I only did so as an example, using the fake variable I made up.
+
+```{r, fig.height=8, fig.width=8}
+ggplot(tcounts, aes(dex, expression, fill=fake)) + 
+  geom_boxplot() + 
+  facet_wrap(~gene, scales="free_y") + 
+  labs(x="Dexamethasone treatment", 
+       y="Expression (log normalized counts)", 
+       fill="(Some made \nup variable)", 
+       title="Top Results")
+```
+
+## Multi-page "catalog"
+
+Or in a loop, create a multi-page PDF (text searchable) with one page per gene.
+
+```{r, eval=FALSE}
+pdf("multi-ggplot2-catalog.pdf")
+for (i in goi) {
+  p <- ggplot(filter(tcounts, gene==i), aes(dex, expression, fill=fake)) + 
+    geom_boxplot() + 
+    ggtitle(i)
+  print(p)
+}
+dev.off()
+```
+
+## Improvements
+
+- In the "Join & tidy" section, you could continue joining back to the results, such that you could incorporate statistics (FCs, p-values, etc) into the text on the plots. 
+- You could also consider joining this to gene information, e.g., using [annotables](https://github.com/stephenturner/annotables) or Bioconductor annotation packages.

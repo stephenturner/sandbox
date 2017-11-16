@@ -1,0 +1,94 @@
+---
+title: "Forecasting"
+author: "Stephen Turner"
+date: "November 16, 2017"
+output: 
+  html_document: 
+    code_folding: hide
+    df_print: paged
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 8
+    theme: flatly
+    toc: yes
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+# subtitle: preprocessing and analysis
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE, cache=TRUE)
+```
+
+## Forecasting flu outbreaks
+
+```{r}
+library(tidyverse)
+library(prophet)
+library(cdcfluview)
+library(lubridate)
+theme_set(theme_bw())
+```
+
+### Get data
+
+Let's get the data from the CDC's Influenza-like illness API. 
+
+```{r}
+flu <- ilinet(region = "national") %>% 
+  select(week_start, starts_with("age"), ilitotal, total_patients) %>%
+  filter(year(week_start)>=2003)
+flu
+```
+
+### Forecast future outbreaks
+
+The last week we have data on is `r tail(flu$week_start,1)`. Let's forecast outbreaks for the next five years.
+
+```{r, results="hide"}
+# Run the model
+m <- prophet(flu %>% select(ds=week_start, y=ilitotal))
+# Make a future data frame
+future <- make_future_dataframe(m, periods=365*5)
+# Predict the future
+forecast <- predict(m, future)
+tail(forecast[c('ds', 'yhat', 'yhat_lower', 'yhat_upper')])
+```
+
+### Plot the future
+
+```{r, echo=FALSE, fig.cap="Flu outbreaks forecasted for the next 5 years."}
+plot(m, forecast) + labs(x="Date", y="Number of flu cases")
+```
+
+```{r, echo=FALSE, fig.cap="Trend, uncertainty, and yearly seasonality."}
+prophet_plot_components(m, forecast)
+```
+
+## Forecast Peyton Manning Wikipedia Page Views
+
+Let's look at a time series of daily page views for the Wikipedia page for [Peyton Manning](https://en.wikipedia.org/wiki/Peyton_Manning) scraped using the [Wikipediatrend package](https://cran.r-project.org/web/packages/wikipediatrend/vignettes/using-wikipediatrend.html). This example illustrates forecasting that accounts for multiple seasonality, changing growth rates, and the ability to model special days (such as Manning's playoff and superbowl appearances). The data is available here.
+
+### Process data and forecast
+
+Import and log transform the data to deal with extreme outliers, then predict the future.
+
+```{r, results="hide"}
+manning <- read_csv("data/peyton_manning_prophet.csv") %>% mutate(y=log(y))
+m <- prophet(manning)
+future <- make_future_dataframe(m, periods = 365*2)
+forecast <- predict(m, future)
+tail(forecast[c('ds', 'yhat', 'yhat_lower', 'yhat_upper')])
+```
+
+### Plot future page views
+
+```{r, echo=FALSE, fig.cap="Predicted page views for Wikipedia entry on Peyton Manning."}
+plot(m, forecast) + labs(x="Date", y="Number of page views")
+```
+
+```{r, echo=FALSE, fig.cap="Trend/uncertainty, and weekly + yearly seasonality."}
+prophet_plot_components(m, forecast)
+```

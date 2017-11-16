@@ -1,0 +1,41 @@
+---
+title: "Quick ggplotly demo"
+author: "Stephen Turner"
+date: "February 27, 2017"
+output: 
+  html_document: 
+    df_print: paged
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE, eval=TRUE, echo=TRUE)
+```
+
+## Regular old ggplot
+
+Make a regular old ggplot scatterplot with the iris data:
+
+
+```{r}
+library(ggplot2)
+p <- ggplot(iris, aes(Petal.Width, Sepal.Length, col=Species)) + geom_point()
+p
+```
+
+## Plotly
+
+Load the plotly library. Run `ggplotly()` around the plot object you just made. Instantly interactive! See https://plot.ly/ggplot2/ for more. Try hovering, clicking on the legend. In RStudio you can save as a webpage and embed elsewhere.
+
+```{r}
+library(plotly)
+ggplotly(p)
+```
+
+# SessionInfo
+
+```{r}
+sessionInfo()
+```
+
