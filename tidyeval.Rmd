@@ -1,0 +1,90 @@
+---
+title: "Tidyeval / rlang playground"
+author: "Stephen Turner"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: 
+  html_document: 
+    # code_folding: show
+    # df_print: paged
+    out.width: "100%"
+    fig.width: 9
+    fig.height: 3
+    warning: FALSE
+    message: FALSE
+    fig_caption: yes
+    theme: flatly
+    toc: yes
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+# subtitle: asdf
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+# Useful references
+
+Official documentation: 
+
+- rlang documentation: http://rlang.tidyverse.org/
+- Programming with dplyr: http://dplyr.tidyverse.org/articles/programming.html
+
+Useful posts:
+
+- http://www.onceupondata.com/2017/08/12/my-first-steps-into-the-world-of-tidyeval/
+- http://blog.jalsalam.com/posts/2017/quasi-quotation-applications/
+
+# Recoding with a lookup table
+
+```{r}
+d <- data_frame(x=1:5, y=letters[1:5])
+d
+```
+
+Let's recode one row at a time
+
+```{r}
+d %>% 
+  mutate(z=recode(y, a="apple", b="banana", c="cat", d="dog", e="elephant")) # etc
+```
+
+What if we have a lookup dictionary in a table? You might read this in from a file, but here we create it. Notice that you don't have an entry for `d`, but you do for `f`. Notice the effect later on.
+
+```{r}
+lookup <- tribble(
+  ~letter, ~expansion, 
+  "a", "apple",
+  "b", "banana", 
+  "c", "cat",
+  "e", "elephant",
+  "f", "fox"
+)
+lookup
+```
+
+Make it a named list
+
+```{r}
+lookup <- deframe(lookup)
+lookup
+```
+
+Unquote splice (`!!!`) to recode all.
+
+```{r}
+d %>% 
+  mutate(z=recode(y, !!!(lookup)))
+```
+
+Notice what happens for `d`. Use this to make it default back to missing.
+
+```{r}
+d %>% 
+  mutate(z=recode(y, !!!(lookup), .default=NA_character_))
+```
